@@ -7,11 +7,8 @@ const bodyParser = require('body-parser');
 const async      = require('async');
 const moment     = require('moment');
 
-let ajv = require('ajv')({
-    allErrors:   true,
-    format:      'full',
-    coerceTypes: true
-});
+let intervalId;
+let previousNotification;
 
 module.exports = NodeHelper.create({
 
@@ -85,7 +82,7 @@ module.exports = NodeHelper.create({
                     // Internal reference to lpd8806-async
                     var LPD8806 = require('lpd8806-async');
                     this.leds = new LPD8806(this.config.ledCount, this.config.bus, this.config.device);
-                    
+
                     // Initialize off
                     this.leds.allOFF();
                     this.leds.setMasterBrightness(this.config.brightness);
@@ -101,7 +98,6 @@ module.exports = NodeHelper.create({
             let iterations = 2;
             let sequence   = payload;
             let delay      = 0;
-            
 
             if (typeof payload === 'object') {
                 sequence   = payload.sequence;
@@ -127,6 +123,12 @@ module.exports = NodeHelper.create({
     runSequence: function (sequence, iterations, delay) {
         let self = this;
         iterations = iterations || 2;
+        clearInterval(intervalId);
+
+        if (sequence != 'lightblue_pulse') {
+            previousNotification = sequence;
+            self.log('previousNotification: ' + previousNotification);
+        }
 
         this.log('runSequence: ' + sequence + ', iterations: ' + iterations + ', delay: ' + delay);
 
@@ -150,11 +152,90 @@ module.exports = NodeHelper.create({
                     colors = [0, 255, 0];
                     break;
                 case 'orange_pulse':
-                    colors = [255, 170, 0];
+                    colors = [255, 128, 0];
                     break;
                 case 'pink_pulse':
                     colors = [255, 0, 255];
                     break;
+                case 'white_static':
+                    colors = [255, 255, 255];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'warm_static':
+                    colors = [255, 144, 97];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'blue_static':
+                    colors = [0, 0, 255];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'red_static':
+                    colors = [255, 0, 0];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'green_static':
+                    colors = [0, 255, 0];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'orange_static':
+                    colors = [255, 128, 0];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'pink_static':
+                    colors = [255, 0, 255];
+                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    return;
+                case 'off':
+                    resolve(self.off());
+                    return;
+                case 'rainbow':
+                    var offset = 0;
+                    intervalId = setInterval(function () {
+                        for (var i = 0; i < self.config.ledCount; i++) {
+                            self.leds.setColor(i, self.colorwheel((offset + i) % 256));
+                        }
+
+                        offset = (offset + 3) % 256;
+                        resolve(self.leds.update());
+                    }, 50);
+                    return;
+                case 'christmas':
+                    var colours = [
+                        [255, 144, 97], // warm white
+                        [255, 0, 0], // red
+                        [255, 128, 0], // orange
+                        [255, 255, 0], // yellow
+                        [128, 255, 0], // lime
+                        [0, 255, 0], // green
+                        [0, 255, 255], // light blue
+                        [0, 128, 255], // ocean blue
+                        [0, 0, 255], // blue
+                        [128, 0, 255], // purple
+                        [255, 0, 255], // pink
+                        [255, 0, 128] // fucsia
+
+                    ];
+                    intervalId = setInterval(function () {
+                        for (var i = 0; i < self.config.ledCount; i++) {
+                            self.leds.setColor(i, colours[Math.floor(Math.random()*colours.length)]);
+                        }
+                        resolve(self.leds.update());
+                    }, 1000);
+                    return;
+                case 'candy':
+                    var white = [255, 255, 255];
+                    var red = [255, 0, 0];
+                    var current = "white";
+
+                    intervalId = setInterval(function () {
+                        for (var i = 0; i < self.config.ledCount; i++) {
+                            self.leds.setColor(i, current == "white" ? red : white);
+                            current = current == "white" ? "red" : "white";
+                        }
+                        resolve(self.leds.update());
+                        current = current == "white" ? "red" : "white";
+                    }, 1000);
+                    return;
                 default:
                     reject(new Error('Unknown sequence: ' + sequence));
                     return;
@@ -163,6 +244,24 @@ module.exports = NodeHelper.create({
 
             resolve(self.pulse(colors[0], colors[1], colors[2], iterations, 20, delay));
         });
+    },
+
+    /**
+     * Outputs log messages
+     *
+     * @param {Integer}  pos
+     */
+    colorwheel: function colorwheel(pos) {
+        pos = 255 - pos;
+        if (pos < 85) {
+            return [255 - pos * 3, 0, pos * 3];
+        } else if (pos < 170) {
+            pos -= 85;
+            return [0, pos * 3, 255 - pos * 3];
+        } else {
+            pos -= 170;
+            return [pos * 3, 255 - pos * 3, 0];
+        }
     },
 
     /**
@@ -267,7 +366,7 @@ module.exports = NodeHelper.create({
             }else if (this.type == 'lpd8806'){
                 this.leds.allOFF();
             }
-            
+
             this.stopAnimation();
         }
     },
@@ -330,6 +429,16 @@ module.exports = NodeHelper.create({
 
         if (this.leds) {
             performStep();
+        }
+
+        if (r == 0 && g == 255 && b == 255 && typeof previousNotification !== "undefined") {
+            setTimeout(function () {
+                self.log('Reverting');
+                Promise.resolve(self.runSequence(previousNotification, 2, 0)
+                    .catch((err) => {
+                        self.log('Sequence error: ' + err.message);
+                    }));
+            }, 2000);
         }
     },
 
