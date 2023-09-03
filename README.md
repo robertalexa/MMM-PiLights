@@ -24,7 +24,7 @@ Clone the module and npm install:
 
 ```bash
 cd ~/MagicMirror/modules
-git clone https://github.com/jc21/MMM-PiLights.git
+git clone https://github.com/robertalexa/MMM-PiLights.git
 cd MMM-PiLights
 npm install
 ```
@@ -119,6 +119,7 @@ curl -X GET "http://yourmagicmirror/PiLights?sequence=blue_pulse"
 
 ## Available Sequences
 
+- off
 - white_pulse
 - blue_pulse
 - lightblue_pulse
@@ -126,5 +127,50 @@ curl -X GET "http://yourmagicmirror/PiLights?sequence=blue_pulse"
 - green_pulse
 - orange_pulse
 - pink_pulse
+- white_static
+- warm_static
+- blue_static
+- red_static
+- green_static
+- orange_static
+- pink_static
+- rainbow
+- christmas
+- candy
 
-More to come later.
+## Note
+I am not actively maintaining this, but happy to help anyone that will give this a go.
+
+The code is not in a clean shape, not having enough time... one day i will improve it, hopefully :)
+
+The code is slightly bespoke to my use case, where I am matching this with MMM-GoogleAssistant. When called, the
+assistant will trigger the lightblue_pulse notification. In case there was already an effect, once the pulse finishes,
+it gets restored.
+
+## MMM-GoogleAssistant Recipe
+```js
+/**   WS-2801 LED Strip Control  		**/
+/**   Vocal commands script             **/
+var recipe = {
+    plugins: {
+        onActivate: "LED_LBLUE_PULSE"
+    },
+
+    commands: {
+        "LED_LBLUE_PULSE": {
+            notificationExec: {
+                notification: "PILIGHTS_SEQUENCE",
+                payload: {
+                    sequence: "lightblue_pulse",
+                    iterations: "2"
+                }
+            }
+        },
+    }
+}
+```
+
+## Disclaimer
+All credits go to the original author and original repository https://github.com/jc21/MMM-PiLights
+
+I have only updated packages and made changes that I have been using for years, just never publicised.
