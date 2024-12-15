@@ -7,9 +7,6 @@ Module.register('MMM-PiLights', {
      */
     defaults: {
         ledCount: 64,
-        type: 'ws2801', // 'ws2801' or 'lpd8806'
-        bus: 0,
-        device: 0,
         brightness: 1.0 // between 0.0 and 1.0
     },
 

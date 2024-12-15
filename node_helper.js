@@ -6,6 +6,7 @@ const NodeHelper = require('node_helper');
 const bodyParser = require('body-parser');
 const async      = require('async');
 const moment     = require('moment');
+const LedController = require('ws2801-pi').default;
 
 let intervalId;
 let previousNotification;
@@ -71,26 +72,15 @@ module.exports = NodeHelper.create({
 
             try {
                 this.log('Trying to load leds', true);
-                this.type = this.config.type;
-                if (this.type == 'ws2801') {
-                    // Internal reference to rpi-ws2801
-                    this.leds = require("rpi-ws2801");
-                    this.leds.connect(this.config.ledCount, this.config.bus, this.config.device);
-                    // Initialize off
-                    this.leds.clear();
-                } else if (this.type == 'lpd8806') {
-                    // Internal reference to lpd8806-async
-                    var LPD8806 = require('lpd8806-async');
-                    this.leds = new LPD8806(this.config.ledCount, this.config.bus, this.config.device);
+                // Internal reference to rpi-ws2801
+                this.leds = new LedController(this.config.ledCount);
+                // Initialize off
+                this.leds.clearLeds().show();
 
-                    // Initialize off
-                    this.leds.allOFF();
-                    this.leds.setMasterBrightness(this.config.brightness);
-                }
                 this.log('Leds connected ok', true);
 
             } catch (err) {
-                this.log('Unable to open SPI (' + this.config.device + '), not supported? ' + err.message);
+                this.log('Unable to open SPI ' + err.message);
                 this.leds = null;
             }
 
@@ -133,57 +123,118 @@ module.exports = NodeHelper.create({
         this.log('runSequence: ' + sequence + ', iterations: ' + iterations + ', delay: ' + delay);
 
         return new Promise(function (resolve, reject) {
-            let colors = [0, 0, 0];
+            let colors = {
+              red: 0,
+              green: 0,
+              blue: 0,
+            };
 
             switch (sequence) {
                 case 'blue_pulse':
-                    colors = [0, 0, 255];
+                    colors = {
+                      red: 0,
+                      green: 0,
+                      blue: 255,
+                    };
                     break;
                 case 'white_pulse':
-                    colors = [255, 255, 255];
+                    colors = {
+                      red: 255,
+                      green: 255,
+                      blue: 255,
+                    };
                     break;
                 case 'lightblue_pulse':
-                    colors = [0, 255, 255];
+                    colors = {
+                      red: 0,
+                      green: 255,
+                      blue: 255,
+                    };
                     break;
                 case 'red_pulse':
-                    colors = [255, 0, 0];
+                    colors = {
+                      red: 255,
+                      green: 0,
+                      blue: 0,
+                    };
                     break;
                 case 'green_pulse':
                     colors = [0, 255, 0];
+                    colors = {
+                      red: 0,
+                      green: 255,
+                      blue: 0,
+                    };
                     break;
                 case 'orange_pulse':
-                    colors = [255, 128, 0];
+                    colors = {
+                      red: 255,
+                      green: 128,
+                      blue: 0,
+                    };
                     break;
                 case 'pink_pulse':
-                    colors = [255, 0, 255];
+                    colors = {
+                      red: 255,
+                      green: 0,
+                      blue: 255,
+                    };
                     break;
                 case 'white_static':
-                    colors = [255, 255, 255];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 255,
+                      green: 255,
+                      blue: 255,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'warm_static':
-                    colors = [255, 144, 97];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 255,
+                      green: 144,
+                      blue: 97,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'blue_static':
-                    colors = [0, 0, 255];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 0,
+                      green: 0,
+                      blue: 255,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'red_static':
-                    colors = [255, 0, 0];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 255,
+                      green: 0,
+                      blue: 0,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'green_static':
-                    colors = [0, 255, 0];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 0,
+                      green: 255,
+                      blue: 0,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'orange_static':
-                    colors = [255, 128, 0];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 255,
+                      green: 128,
+                      blue: 0,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'pink_static':
-                    colors = [255, 0, 255];
-                    resolve(self.fillRGB(colors[0], colors[1], colors[2]));
+                    colors = {
+                      red: 255,
+                      green: 0,
+                      blue: 255,
+                    };
+                    resolve(self.fillRGB(colors));
                     return;
                 case 'off':
                     resolve(self.off());
@@ -192,47 +243,104 @@ module.exports = NodeHelper.create({
                     var offset = 0;
                     intervalId = setInterval(function () {
                         for (var i = 0; i < self.config.ledCount; i++) {
-                            self.leds.setColor(i, self.colorwheel((offset + i) % 256));
+                            self.leds.setLed(i, self.colorwheel((offset + i) % 256));
                         }
 
                         offset = (offset + 3) % 256;
-                        resolve(self.leds.update());
+                        resolve(self.leds.show());
                     }, 50);
                     return;
                 case 'christmas':
                     var colours = [
-                        [255, 144, 97], // warm white
-                        [255, 0, 0], // red
-                        [255, 128, 0], // orange
-                        [255, 255, 0], // yellow
-                        [128, 255, 0], // lime
-                        [0, 255, 0], // green
-                        [0, 255, 255], // light blue
-                        [0, 128, 255], // ocean blue
-                        [0, 0, 255], // blue
-                        [128, 0, 255], // purple
-                        [255, 0, 255], // pink
-                        [255, 0, 128] // fucsia
-
+                        { // warm white
+                          red: 255,
+                          green: 144,
+                          blue: 97,
+                        },
+                        { // red
+                          red: 255,
+                          green: 0,
+                          blue: 0,
+                        },
+                        { // orange
+                          red: 255,
+                          green: 128,
+                          blue: 0,
+                        },
+                        { // yellow
+                          red: 255,
+                          green: 255,
+                          blue: 0,
+                        },
+                        { // lime
+                          red: 128,
+                          green: 255,
+                          blue: 0,
+                        },
+                        { // green
+                          red: 0,
+                          green: 255,
+                          blue: 0,
+                        },
+                        { // light blue
+                          red: 0,
+                          green: 255,
+                          blue: 255,
+                        },
+                        { // ocean blue
+                          red: 0,
+                          green: 128,
+                          blue: 255,
+                        },
+                        { // blue
+                          red: 0,
+                          green: 0,
+                          blue: 255,
+                        },
+                        { // purple
+                          red: 128,
+                          green: 0,
+                          blue: 255,
+                        },
+                        { // pink
+                          red: 255,
+                          green: 0,
+                          blue: 215,
+                        },
+                        { // fucsia
+                          red: 255,
+                          green: 0,
+                          blue: 128,
+                        }
                     ];
                     intervalId = setInterval(function () {
                         for (var i = 0; i < self.config.ledCount; i++) {
-                            self.leds.setColor(i, colours[Math.floor(Math.random()*colours.length)]);
+                            self.leds.setLed(i, colours[Math.floor(Math.random()*colours.length)]);
                         }
-                        resolve(self.leds.update());
+                        resolve(self.leds.show());
                     }, 1000);
                     return;
                 case 'candy':
-                    var white = [255, 255, 255];
-                    var red = [255, 0, 0];
-                    var current = "white";
+                    const white = {
+                      red: 255,
+                      green: 255,
+                      blue: 255,
+                    }
+
+                    const red = {
+                      red: 255,
+                      green: 0,
+                      blue: 0,
+                    }
+
+                    let current = "white";
 
                     intervalId = setInterval(function () {
-                        for (var i = 0; i < self.config.ledCount; i++) {
-                            self.leds.setColor(i, current == "white" ? red : white);
+                        for (let i = 0; i < self.config.ledCount; i++) {
+                            self.leds.setLed(i, current == "white" ? red : white);
                             current = current == "white" ? "red" : "white";
                         }
-                        resolve(self.leds.update());
+                        resolve(self.leds.show());
                         current = current == "white" ? "red" : "white";
                     }, 1000);
                     return;
@@ -242,7 +350,7 @@ module.exports = NodeHelper.create({
                     break;
             }
 
-            resolve(self.pulse(colors[0], colors[1], colors[2], iterations, 20, delay));
+            resolve(self.pulse(colors.red, colors.green, colors.blue, iterations, 20, delay));
         });
     },
 
@@ -254,13 +362,25 @@ module.exports = NodeHelper.create({
     colorwheel: function colorwheel(pos) {
         pos = 255 - pos;
         if (pos < 85) {
-            return [255 - pos * 3, 0, pos * 3];
+            return {
+              red: 255 - pos * 3,
+              green: 0,
+              blue: pos * 3,
+            }
         } else if (pos < 170) {
             pos -= 85;
-            return [0, pos * 3, 255 - pos * 3];
+            return {
+              red: 0,
+              green: pos * 3,
+              blue: 255 - pos * 3,
+            };
         } else {
             pos -= 170;
-            return [pos * 3, 255 - pos * 3, 0];
+            return {
+              red: pos * 3,
+              green: 255 - pos * 3,
+              blue: 0,
+            };
         }
     },
 
@@ -309,7 +429,7 @@ module.exports = NodeHelper.create({
      */
     update: function() {
         if (this.leds) {
-            this.leds.update();
+            this.leds.show();
         }
     },
 
@@ -343,14 +463,11 @@ module.exports = NodeHelper.create({
      * @param g
      * @param b
      */
-    fillRGB: function(r, g, b) {
+    fillRGB: function(colours) {
         if (this.leds) {
             this.switchAnimation(() => {
-                if (this.type == 'ws2801'){
-                    this.leds.fill(r, g, b);
-                }else if (this.type == 'lpd8806'){
-                    this.leds.fillRGB(r, g, b);
-                }
+                this.leds.fillLeds(colours);
+                this.leds.show();
                 this.stopAnimation();
             });
         }
@@ -361,11 +478,7 @@ module.exports = NodeHelper.create({
      */
     off: function() {
         if (this.leds) {
-            if (this.type == 'ws2801'){
-                this.leds.clear();
-            }else if (this.type == 'lpd8806'){
-                this.leds.allOFF();
-            }
+            this.leds.clearLeds().show();
 
             this.stopAnimation();
         }

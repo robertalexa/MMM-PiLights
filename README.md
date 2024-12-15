@@ -4,10 +4,8 @@ MagicMirror Module to control a led strip attached to a Raspberry Pi
 
 ## Requirements
 
-This module is specifically meant for the Raspberry Pi system, using SPI and a LPD8806 or WS2801
-LED strip. It may be compatible with other LED strips, but this has not been tested.
-
-[Buy the LPD8806 LED Strip here](https://www.adafruit.com/products/306) and [learn how to connect it here](https://learn.adafruit.com/light-painting-with-raspberry-pi/hardware)
+This module is specifically meant for the Raspberry Pi system, using SPI and a WS2801
+LED strip.
 
 If using Raspbian, you will need to enable SPI:
 
@@ -37,9 +35,6 @@ modules: [
         module: 'MMM-PiLights',
         config: {
             ledCount: 64,
-            type: 'ws2801', // 'ws2801' or 'lpd8806'
-            bus: 0, 
-            device: 0,
             brightness: 1.0 // between 0.0 and 1.0
         }
     }
@@ -64,24 +59,6 @@ modules: [
             <td>Integer</td>
             <td><code>64</code></td>
             <td>Number LEDs on your strip</td>
-        </tr>
-        <tr>
-            <td><code>type</code></td>
-            <td>String</td>
-            <td><code>ws2801</code></td>
-            <td>The LED strip type, either 'ws2801' or 'lpd8806'</td>
-        </tr>
-        <tr>
-            <td><code>bus</code></td>
-            <td>Integer</td>
-            <td><code>0</code></td>
-            <td>The SPI bus number for your LED strip</td>
-        </tr>
-        <tr>
-            <td><code>device</code></td>
-            <td>Integer</td>
-            <td><code>0</code></td>
-            <td>The SPI device number for your LED strip</td>
         </tr>
         <tr>
             <td><code>brightness</code></td>
