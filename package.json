@@ -8,9 +8,6 @@
     "LED",
     "module"
   ],
-  "scripts": {
-    "postinstall": "./postinstall"
-  },
   "author": "Jamie Curnow",
   "license": "MIT",
   "dependencies": {
